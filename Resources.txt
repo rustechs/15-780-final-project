@@ -1,0 +1,2 @@
+Info on Solvers : https://medium.freecodecamp.org/data-science-with-python-8-ways-to-do-linear-regression-and-measure-their-speed-b5577d75f8b
+Basic Model ID :https://web.stanford.edu/class/archive/ee/ee392m/ee392m.1034/Lecture8_ID.pdf
