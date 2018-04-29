@@ -11,8 +11,8 @@ function buildDynamicSystem(sysName)
     A = []; % TODO
     C = []; % TODO
 
-    f = @(t,x) A*x;
-    c = @(x) C*x;
+    f = @(t,x) A*reshape(x,length(x),1);
+    c = @(x) C*reshape(x,length(x),1);
     
     % Initial condition
     x0 = []; % TODO 
