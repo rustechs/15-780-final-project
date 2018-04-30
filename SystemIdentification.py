@@ -34,7 +34,7 @@ class SI():
 	regularization_strength=0
 	form=[]
 
-	def __init__(self, matlab_api=None, input_data_file=None, degree=-1, regularization=0, data=None, form=None):
+	def __init__(self, matlab_api=None, input_data_file=None, degree=1, regularization=0, data=None, form=None):
 		if input_data_file != None:
 			self.readFile(input_data_file)
 		else:
@@ -51,14 +51,20 @@ class SI():
 			sys.exit('No input data found')
 		self.degree_of_polynomial=degree
 		self.regularization_strength=regularization
+		if self.degree_of_polynomial!=1:
+			self.augmentInput()
 		self.createControlEqns()
 		
 	def createControlEqns(self):
-		self.combinedIp=copy.deepcopy(self.regressionData[x])
-		for i in range(len(self.combinedIp)):
-			self.combinedIp[i] += copy.deepcopy(self.regressionData[u][i])
-		dbg('Combined control eqns: x:{} u:{} combined{}'.format(self.regressionData[x][-1], self.regressionData[u][-1], self.combinedIp[-1]))
-			
+		self.combinedIp0=copy.deepcopy(self.regressionData[x])
+		self.combinedIp1=copy.deepcopy(self.regressionData[x])
+		for i in range(len(self.combinedIp0)):
+			self.combinedIp0[i] += copy.deepcopy(self.regressionData[u][i])
+			self.combinedIp1[i] += copy.deepcopy(self.regressionData[u][i])
+			if self.degree_of_polynomial>1:
+				self.combinedIp0[i] += copy.deepcopy([k**self.degree_of_polynomial for k in self.regressionData[x][i]])
+		dbg('Combined control eqns: x:{} u:{} combined-state{}'.format(self.regressionData[x][-1], self.regressionData[u][-1], self.combinedIp0[-1]))
+	
 
 	def visualize(self):
 		plt.figure(1)
@@ -87,16 +93,21 @@ class SI():
 		Bmat=[]
 		Cmat=[]
 		Dmat=[]
+		Emat=[]
 		dbg('ip model : {}\nop_model:{}'.format(ip, op))
 		for i in range(len(ip)):
 			Amat += [copy.deepcopy(ip[i][:self.form[x]]).tolist()]
-			Bmat += [copy.deepcopy(ip[i][self.form[x]:]).tolist()]
-		dbg('A:{}\n\nB:{}\n'.format(Amat,Bmat))
+			Bmat += [copy.deepcopy(ip[i][self.form[x]:self.form[x]+self.form[u]]).tolist()]
+			if self.degree_of_polynomial>1:
+				Emat += [copy.deepcopy(ip[i][-self.form[x]:]).tolist()]
+		dbg('A:{}\n\nB:{}\n\nE:{}\n'.format(Amat,Bmat,Emat))
 		for i in range(len(op)):
 			Cmat += [copy.deepcopy(op[i][:self.form[x]]).tolist()]
 			Dmat += [copy.deepcopy(op[i][self.form[x]:]).tolist()]
 		dbg('C:{}\n\nD:{}'.format(Cmat,Dmat))
 		self.predicted_model=[Amat,Bmat,Cmat,Dmat]
+		if self.degree_of_polynomial>1:
+			self.predicted_model.append(Emat)
 
 	def solver(self, name): #polynomial, curve, ml_regression, robust
 		start = time.time()
@@ -108,10 +119,10 @@ class SI():
 			else:
 				if name=='ml_regression':
 					state_model = skl.linear_model.LinearRegression(fit_intercept=False)
-					state_model.fit(self.combinedIp ,self.regressionData[xdot])
+					state_model.fit(self.combinedIp0 ,self.regressionData[xdot])
 					combined_ip_model = self.array2list(state_model.coef_)
 					output_model = skl.linear_model.LinearRegression(fit_intercept=False)
-					output_model.fit(self.combinedIp ,self.regressionData[y])
+					output_model.fit(self.combinedIp1 ,self.regressionData[y])
 					combined_op_model = self.array2list(output_model.coef_)
 					self.splitCombinedModels(combined_ip_model, combined_op_model)
 				else:
@@ -148,15 +159,7 @@ class SI():
 		#fmetrics.close()
 
 	def augmentInput(self):
-		#dbg('Input before augmenting: {}'.format(self.regressionData[x]))
-		if self.types_of_nonlinearity[2]==1:
-			self.regressionData[x] += [np.log(self.regressionData[x][0:self.no_original_ip])]
-		if self.types_of_nonlinearity[1]==1:
-			self.regressionData[x] += [np.exp(self.regressionData[x][0:self.no_original_ip])]
-		if self.types_of_nonlinearity[0]==1:
-			#Yet to implement
-			return
-		#dbg('Input after augmenting: {}'.format(self.regressionData[x]))
+		pass
 
 	def model_function_to_fit(self):
 		pass
