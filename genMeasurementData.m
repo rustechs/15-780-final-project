@@ -1,13 +1,13 @@
 function genMeasurementData(sysName)
 
     % Load system specifications into a struct
-    sys = load(sysName);
+    sys = load(['configs/' sysName]);
     
     % Save all generated data to a struct
-    data = struct([]);
+    data = struct('t',[],'x',[],'yTrue',[]);
     
     % Generate true system data
-    [data.t,data.x] = ode45(odeFcn,sys.tSamples,sys.x0);
+    [data.t,data.x] = ode45(sys.f,sys.tSamples,sys.x0);
     
     data.yTrue = zeros(length(data.t),sys.m);
     for i = 1:length(data.t)
@@ -28,8 +28,8 @@ function genMeasurementData(sysName)
     % Plot some stuff
     figure
     hold on;
-    plot(data.t,data.yTrue,'-');
-    plot(data.t,data.yNoisy,'--');
+    plot(data.t,data.yNoisy,'.');
+    plot(data.t,data.yTrue,'-','LineWidth',2);
     box on;
     grid minor;
     xlabel('time');
