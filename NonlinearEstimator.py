@@ -3,8 +3,10 @@ import sys
 
 def Input(fname):
 	fhandle = open(fname, 'r')
-	deg = fhandle.readlines()[0][-1]
-	temp = fhandle.readlines()[2:]
+	lines=fhandle.readlines()
+	deg = lines[0].strip('\n').strip('\r').split()[-1]
+	print('deg is {}'.format(deg))
+	temp = lines[2:]
 	u=[]
 	x=[]
 	xdot=[]
@@ -14,9 +16,9 @@ def Input(fname):
 		x += [t.strip('\n').split()[3:9]]
 		xdot += [t.strip('\n').split()[9:15]]
 		y += [t.strip('\n').split()[15:]]
-	return u,x,xdot,y,deg
+	return u,x,xdot,y,int(deg)
 
-def main(ifile, ofile):
+def main(ifile):
 	u,x,xdot,y,deg = Input(ifile)
 	print('Last line: u:{} x:{} xdot:{} y:{}'.format(u[-1],x[-1],xdot[-1],y[-1]))
 	estimator = SI(degree=deg, data=[u,x,xdot,y], form=[3,6,6,3])
@@ -26,5 +28,4 @@ def main(ifile, ofile):
 
 if __name__=='__main__':
 	ifile = sys.argv[1]
-	ofile = sys.argv[2]
-	main(ifile, ofile)
+	main(ifile)
