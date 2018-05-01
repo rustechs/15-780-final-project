@@ -23,7 +23,10 @@ def main(ifile):
 	print('Last line: u:{} x:{} xdot:{} y:{}'.format(u[-1],x[-1],xdot[-1],y[-1]))
 	estimator = SI(degree=deg, data=[u,x,xdot,y], form=[3,6,6,3])
 	time, model = estimator.solver('ml_regression')
-	[tempA,tempB,tempC,tempD,TempE] = model
+	estimator.getOutput()
+	time, model = estimator.solver('l1')
+	estimator.getOutput()
+	time, model = estimator.solver('l2')
 	estimator.getOutput()
 
 if __name__=='__main__':

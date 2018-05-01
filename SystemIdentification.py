@@ -8,6 +8,7 @@ from sklearn import linear_model
 import time
 import itertools as it
 import matplotlib.pyplot as plt
+import os
 
 debug=1
 u=0 #Inputs
@@ -51,10 +52,12 @@ class SI():
 			sys.exit('No input data found')
 		self.degree_of_polynomial=degree
 		self.regularization_strength=regularization
-		if self.degree_of_polynomial!=1:
-			self.augmentInput()
 		self.createControlEqns()
-		
+		if os.path.exists('Models.txt'):
+			os.remove('Models.txt')
+		if os.path.exists('Metrics.txt'):
+			os.remove('Metrics.txt')
+
 	def createControlEqns(self):
 		self.combinedIp0=copy.deepcopy(self.regressionData[x])
 		self.combinedIp1=copy.deepcopy(self.regressionData[x])
@@ -111,6 +114,10 @@ class SI():
 
 	def solver(self, name): #polynomial, curve, ml_regression, robust
 		start = time.time()
+		loss_table=[]
+		state_loss_val=[]
+		output_loss_val=[]
+		regular=[]
 		if name=='polynomial':
 			self.predicted_model = np.polyfit(self.regressionData[x], self.regressionData[y], self.degree_of_polynomial)
 		else:
@@ -118,24 +125,59 @@ class SI():
 				self.predicted_model = sp.optimize.curve_fit(self.model_function_to_fit, self.regressionData[x], self.regressionData[y])
 			else:
 				if name=='ml_regression':
-					state_model = skl.linear_model.LinearRegression(fit_intercept=False)
-					state_model.fit(self.combinedIp0 ,self.regressionData[xdot])
-					combined_ip_model = self.array2list(state_model.coef_)
-					output_model = skl.linear_model.LinearRegression(fit_intercept=False)
-					output_model.fit(self.combinedIp1 ,self.regressionData[y])
-					combined_op_model = self.array2list(output_model.coef_)
-					self.splitCombinedModels(combined_ip_model, combined_op_model)
+					state_model = skl.linear_model.LinearRegression(fit_intercept=False, copy_X=True)
+					output_model = skl.linear_model.LinearRegression(fit_intercept=False, copy_X=True)
 				else:
 					if name=='robust':
 						self.predicted_model = skl.linear_model.RANSACRegressor.fit(self.regressionData[x], self.regressionData[y]).get_params()
 					else:
 						if name=='l2':
-							self.predicted_model = skl.linear_model.Ridge(alpha=self.regularization_strength).fit(self.regressionData[x], self.regressionData[y]).get_params()
+							hyperparameter_optimization_time=time.time()
+							for j in range(1,9):
+								i=j/float(10)
+								state_model = skl.linear_model.Ridge(alpha=i, fit_intercept=False, copy_X=True) 		#Tolerance ? Max iterations ?
+								output_model = skl.linear_model.Ridge(alpha=i, fit_intercept=False, copy_X=True)
+								state_model.fit(self.combinedIp0[:-len(self.combinedIp0)/5], self.regressionData[xdot][:-len(self.combinedIp0)/5])
+								output_model.fit(self.combinedIp1[:-len(self.combinedIp0)/5], self.regressionData[y][:-len(self.combinedIp0)/5])
+								state_loss = np.sum(np.power(np.subtract(state_model.predict(self.combinedIp0[-len(self.combinedIp0)/5:]), self.regressionData[xdot][-len(self.combinedIp0)/5:]), 2)) / (len(self.combinedIp0)/5)
+								output_loss = np.sum(np.power(np.subtract(output_model.predict(self.combinedIp1[-len(self.combinedIp0)/5:]), self.regressionData[y][-len(self.combinedIp0)/5:]), 2)) / (len(self.combinedIp0)/5)
+								loss_table += [(state_loss, output_loss, i)]
+								state_loss_val += [state_loss]
+								output_loss_val += [output_loss]
+							regular += [loss_table[state_loss_val.index(max(state_loss_val))][2]]
+							state_model = skl.linear_model.Ridge(alpha=regular[0], fit_intercept=False, copy_X=True)	
+							regular += [loss_table[output_loss_val.index(max(output_loss_val))][2]]
+							output_model = skl.linear_model.Ridge(alpha=regular[1], fit_intercept=False, copy_X=True)
+							hyperparameter_optimization_time=time.time()-hyperparameter_optimization_time
+							print('Regularization strengths used are {} and hyperparameter_optimization_time={}'.format(regular, hyperparameter_optimization_time))
 						else:
 							if name=='l1':
-								self.predicted_model = skl.linear_model.Lasso(alpha=self.regularization_strength).fit(self.regressionData[x], self.regressionData[y]).get_params()
+								hyperparameter_optimization_time=time.time()
+								for j in range(1,9):
+									i=j/float(10)
+									state_model = skl.linear_model.Lasso(alpha=i, fit_intercept=False, copy_X=True) 		#Tolerance ? Max iterations ?
+									output_model = skl.linear_model.Lasso(alpha=i, fit_intercept=False, copy_X=True)
+									state_model.fit(self.combinedIp0[:-len(self.combinedIp0)/5], self.regressionData[xdot][:-len(self.combinedIp0)/5])
+									output_model.fit(self.combinedIp1[:-len(self.combinedIp0)/5], self.regressionData[y][:-len(self.combinedIp0)/5])
+									state_loss = np.sum(np.power(np.subtract(state_model.predict(self.combinedIp0[-len(self.combinedIp0)/5:]), self.regressionData[xdot][-len(self.combinedIp0)/5:]), 2)) / (len(self.combinedIp0)/5)
+									output_loss = np.sum(np.power(np.subtract(output_model.predict(self.combinedIp1[-len(self.combinedIp0)/5:]), self.regressionData[y][-len(self.combinedIp0)/5:]), 2)) / (len(self.combinedIp0)/5)
+									loss_table += [(state_loss, output_loss, i)]
+									state_loss_val += [state_loss]
+									output_loss_val += [output_loss]
+								regular += [loss_table[state_loss_val.index(max(state_loss_val))][2]]
+								state_model = skl.linear_model.Lasso(alpha=regular[0], fit_intercept=False, copy_X=True)	
+								regular += [loss_table[output_loss_val.index(max(output_loss_val))][2]]
+								output_model = skl.linear_model.Lasso(alpha=regular[1], fit_intercept=False, copy_X=True)
+								hyperparameter_optimization_time=time.time()-hyperparameter_optimization_time
+								print('Regularization strengths used are {} and hyperparameter_optimization_time={}'.format(regular, hyperparameter_optimization_time))
 							else:
 								sys.exit('Invalid solver option')
+		
+		state_model.fit(self.combinedIp0, self.regressionData[xdot])
+		output_model.fit(self.combinedIp1, self.regressionData[y])
+		combined_ip_model = self.array2list(state_model.coef_)
+		combined_op_model = self.array2list(output_model.coef_)
+		self.splitCombinedModels(combined_ip_model, combined_op_model)
 		self.model_prediction_time_secs = time.time()-start
 		#dbg('Model predicted as {} in time {} seconds'.format(self.predicted_model, self.model_prediction_time_secs))
 		return(self.model_prediction_time_secs, self.predicted_model)
@@ -147,7 +189,7 @@ class SI():
 		return temp
 
 	def getOutput(self):
-		fmodel = open('Model.txt', 'w+')
+		fmodel = open('Models.txt', 'a')
 		#fmetrics = open('Metrics.txt', 'w+')
 		for mat in self.predicted_model:
 			for i in range(len(mat)):
@@ -155,12 +197,7 @@ class SI():
 					fmodel.write(str(entry)+' ')
 				fmodel.write('\n')
 			fmodel.write('\n')
+		fmodel.write('\n---------------------------------------------------------------------------------------------\n')
 		fmodel.close()
 		#fmetrics.close()
-
-	def augmentInput(self):
-		pass
-
-	def model_function_to_fit(self):
-		pass
 	
