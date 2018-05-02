@@ -12,16 +12,15 @@ def Input(fname):
 	xdot=[]
 	y=[]
 	for t in temp:
-		u += [t.strip('\n').split()[0:3]]
-		x += [t.strip('\n').split()[3:9]]
-		xdot += [t.strip('\n').split()[9:15]]
-		y += [t.strip('\n').split()[15:]]
-	return u,x,xdot,y,int(deg)
+		x += [t.strip('\n').split()[0:6]]
+		xdot += [t.strip('\n').split()[6:12]]
+		y += [t.strip('\n').split()[12:]]
+	return x,xdot,y,int(deg)
 
 def main(ifile):
-	u,x,xdot,y,deg = Input(ifile)
-	print('Last line: u:{} x:{} xdot:{} y:{}'.format(u[-1],x[-1],xdot[-1],y[-1]))
-	estimator = SI(degree=deg, data=[u,x,xdot,y], form=[3,6,6,3])
+	x,xdot,y,deg = Input(ifile)
+	print('Last line: u: x:{} xdot: y:{}'.format(x[-1],y[-1]))
+	estimator = SI(degree=deg, data=[x,xdot,y], form=[6,6,3])
 	time, model = estimator.solver('ml_regression')
 	estimator.getOutput()
 	time, model = estimator.solver('l1')
