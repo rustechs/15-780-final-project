@@ -19,7 +19,7 @@ def Input(fname):
 
 def main(ifile):
 	x,xdot,y,deg = Input(ifile)
-	print('Last line: u: x:{} xdot: y:{}'.format(x[-1],y[-1]))
+	print('Last line: u: x:{} xdot:{} y:{}'.format(x[-1],xdot[-1],y[-1]))
 	estimator = SI(degree=deg, data=[x,xdot,y], form=[6,6,3])
 	time, model = estimator.solver('ml_regression')
 	estimator.getOutput()

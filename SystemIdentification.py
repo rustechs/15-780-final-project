@@ -48,8 +48,9 @@ class SI():
 					self.regressionData[x][j] = [float(i) for i in data[x][j]]
 					self.regressionData[xdot][j] = [float(i) for i in data[xdot][j]]
 					self.regressionData[y][j] = [float(i) for i in data[y][j]]
+					#self.regressionData[y][j] = float(data[y][j])
 					
-					#self.ytrue[j] = [float(i) for i in ytrue[j]]
+					#self.ytrue[j] = float(ytrue[j])
 		print('Loki: {}'.format(self.regressionData[y][-1]))
 		self.form=form
 		if self.regressionData==None:
@@ -154,8 +155,8 @@ class SI():
 						output_model.fit(self.combinedIp1, self.regressionData[y])
 						combined_ip_model = self.array2list(state_model.coef_)
 						combined_op_model = self.array2list(output_model.coef_)
-						self.splitCombinedModels(combined_ip_model, combined_op_model)
-						self.getOutput()
+						dbg('ip model : {}\nop_model:{}'.format(combined_ip_model, combined_op_model))
+						#self.getOutput()
 						print('L2 Regularization strengths used are {} and hyperparameter_optimization_time={}'.format(regular, hyperparameter_optimization_time))
 						loss_table=[]
 						state_loss_val=[]
@@ -223,12 +224,13 @@ class SI():
 							else:
 								sys.exit('Invalid solver option')
 		
-		print('\n\nIp matrix is {}'.format(self.combinedIp0[-1]))
-		print('\n\noutput matrix is {}'.format(self.regressionData[y][-1]))
+#		print('\n\nIp matrix is {}'.format(self.combinedIp0[-1]))
+#		print('\n\noutput matrix is {}'.format(self.regressionData[-1]))
 		state_model.fit(self.combinedIp0, self.regressionData[xdot])
 		output_model.fit(self.combinedIp1, self.regressionData[y])
 		combined_ip_model = self.array2list(state_model.coef_)
 		combined_op_model = self.array2list(output_model.coef_)
+		dbg('ip model : {}\nop_model:{}'.format(combined_ip_model, combined_op_model))
 		self.splitCombinedModels(combined_ip_model, combined_op_model)
 		self.model_prediction_time_secs = time.time()-start
 		#dbg('Model predicted as {} in time {} seconds'.format(self.predicted_model, self.model_prediction_time_secs))
